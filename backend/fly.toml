@@ -1,0 +1,55 @@
+app = "collably-api"
+primary_region = "bom"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[processes]
+  app = "uvicorn app.main:app --host 0.0.0.0 --port 8000"
+  email_worker = "python -m app.cli email_worker"
+
+[env]
+  ENV = "prod"
+  DEBUG = "false"
+  ENABLE_MOCK_PAYMENT_ENDPOINTS = "false"
+  PAYMENT_PROVIDER = "razorpay"
+  STORAGE_PROVIDER = "s3"
+  STORAGE_LOCAL_PATH = "/app/uploads"
+  APP_BASE_URL = "https://collably-api.fly.dev"
+  FRONTEND_BASE_URL = "https://collably.vercel.app"
+  TRUST_PROXY = "true"
+
+[[services]]
+  processes = ["app"]
+  internal_port = 8000
+  protocol = "tcp"
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[services.ports]]
+    handlers = ["http"]
+    port = 80
+    force_https = true
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+  [[services.http_checks]]
+    interval = "10s"
+    timeout = "5s"
+    grace_period = "60s"
+    method = "get"
+    path = "/api/v1/health/ready"
+    protocol = "http"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256

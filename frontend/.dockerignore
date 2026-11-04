@@ -1,0 +1,12 @@
+node_modules/
+.next/
+.env*
+*.log
+__tests__/
+coverage/
+.git/
+.gitignore
+README.md
+.eslintrc.json
+.prettierrc
+tsconfig.json

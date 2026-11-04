@@ -49,7 +49,7 @@ Thumbs.db
 # =========================
 uploads/
 media/
-storage/
+/storage/
 *.log
 
 # =========================

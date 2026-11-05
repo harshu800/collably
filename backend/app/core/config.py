@@ -117,13 +117,14 @@ class Settings(BaseSettings):
     razorpay_webhook_secret: str = ""
     razorpayx_account_number: str = ""
 
-    # --- Storage
-    storage_provider: Literal["local", "s3"] = "local"
-    storage_local_path: str = "./uploads"
-    s3_bucket: str = ""
-    s3_region: str = ""
-    s3_access_key_id: str = ""
-    s3_secret_access_key: str = ""
+  # --- Storage
+storage_provider: Literal["local", "s3"] = "local"
+storage_local_path: str = "./uploads"
+s3_bucket: str = ""
+s3_region: str = ""
+s3_endpoint_url: str = ""
+s3_access_key_id: str = ""
+s3_secret_access_key: str = ""
 
     # --- Email
     email_provider: Literal["console", "smtp"] = "console"

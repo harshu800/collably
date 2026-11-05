@@ -17,11 +17,12 @@ def _build_provider(settings: Settings) -> StorageProvider:
         from app.providers.storage.s3 import S3Storage
 
         return S3Storage(
-            bucket=settings.s3_bucket,
-            region=settings.s3_region,
-            access_key_id=settings.s3_access_key_id,
-            secret_access_key=settings.s3_secret_access_key,
-        )
+    bucket=settings.s3_bucket,
+    region=settings.s3_region,
+    endpoint_url=settings.s3_endpoint_url,
+    access_key_id=settings.s3_access_key_id,
+    secret_access_key=settings.s3_secret_access_key,
+)
     raise RuntimeError(f"Unknown STORAGE_PROVIDER: {name!r}")
 
 

@@ -17,29 +17,35 @@ class S3Storage:
     _key_prefix = "collably"
 
     def __init__(
-        self,
-        *,
-        bucket: str,
-        region: str,
-        access_key_id: str = "",
-        secret_access_key: str = "",
-        client_factory: Callable[..., Any] = boto3.client,
-    ) -> None:
-        if not bucket.strip():
-            raise ValueError("S3_BUCKET must be configured.")
-        if not region.strip():
-            raise ValueError("S3_REGION must be configured.")
-        if bool(access_key_id) != bool(secret_access_key):
-            raise ValueError(
-                "S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY must be configured together."
-            )
+    self,
+    *,
+    bucket: str,
+    region: str,
+    endpoint_url: str = "",
+    access_key_id: str = "",
+    secret_access_key: str = "",
+    client_factory: Callable[..., Any] = boto3.client,
+) -> None:
+    if not bucket.strip():
+        raise ValueError("S3_BUCKET must be configured.")
+    if not region.strip():
+        raise ValueError("S3_REGION must be configured.")
+    if bool(access_key_id) != bool(secret_access_key):
+        raise ValueError(
+            "S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY must be configured together."
+        )
 
-        self._bucket = bucket
-        client_options: dict[str, str] = {"region_name": region}
-        if access_key_id:
-            client_options["aws_access_key_id"] = access_key_id
-            client_options["aws_secret_access_key"] = secret_access_key
-        self._client = client_factory("s3", **client_options)
+    self._bucket = bucket
+    client_options: dict[str, str] = {"region_name": region}
+
+    if endpoint_url.strip():
+        client_options["endpoint_url"] = endpoint_url.strip()
+
+    if access_key_id:
+        client_options["aws_access_key_id"] = access_key_id
+        client_options["aws_secret_access_key"] = secret_access_key
+
+    self._client = client_factory("s3", **client_options)
 
     def generate_key(self) -> str:
         """Return a server-generated, non-user-identifying object key."""

@@ -106,7 +106,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
     trust_proxy: bool = False
 
-    # --- Payments
+        # --- Payments
     payment_provider: Literal["mock", "razorpay"] = "mock"
     mock_payment_webhook_secret: str = PLACEHOLDER_MOCK_WEBHOOK_SECRET
     payout_field_enc_key: str = PLACEHOLDER_PAYOUT_ENC_KEY
@@ -117,14 +117,14 @@ class Settings(BaseSettings):
     razorpay_webhook_secret: str = ""
     razorpayx_account_number: str = ""
 
-  # --- Storage
-storage_provider: Literal["local", "s3"] = "local"
-storage_local_path: str = "./uploads"
-s3_bucket: str = ""
-s3_region: str = ""
-s3_endpoint_url: str = ""
-s3_access_key_id: str = ""
-s3_secret_access_key: str = ""
+    # --- Storage
+    storage_provider: Literal["local", "s3"] = "local"
+    storage_local_path: str = "./uploads"
+    s3_bucket: str = ""
+    s3_region: str = ""
+    s3_endpoint_url: str = ""
+    s3_access_key_id: str = ""
+    s3_secret_access_key: str = ""
 
     # --- Email
     email_provider: Literal["console", "smtp"] = "console"
@@ -137,7 +137,6 @@ s3_secret_access_key: str = ""
     # --- URLs
     app_base_url: str = "http://localhost:8000"
     frontend_base_url: str = "http://localhost:3000"
-
     @field_validator("cors_origins")
     @classmethod
     def _strip_cors(cls, v: str) -> str:
@@ -152,11 +151,10 @@ s3_secret_access_key: str = ""
     def validate_production(self) -> None:
         """Fail-fast guard for production misconfiguration.
 
-        Raises :class:`RuntimeError` with a human-readable message describing
+        Raises :class:RuntimeError with a human-readable message describing
         every violation found. Called from the FastAPI startup hook when
         ``ENV=prod``.
         """
-
         if self.env != "prod":
             return
 
@@ -293,6 +291,8 @@ s3_secret_access_key: str = ""
                 errors.append("S3_BUCKET must be set in production")
             if not self.s3_region.strip():
                 errors.append("S3_REGION must be set in production")
+            if not self.s3_endpoint_url.strip():
+                errors.append("S3_ENDPOINT_URL must be set in production")
             if bool(self.s3_access_key_id) != bool(self.s3_secret_access_key):
                 errors.append(
                     "S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY must be set together"

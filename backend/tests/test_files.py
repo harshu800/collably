@@ -64,7 +64,7 @@ async def test_upload_signature_mismatch_is_415(
             "file": (
                 "fake.png",
                 _pad(JPEG_HEADER, 1024),  # JPEG bytes
-                "image/png",              # but declared PNG
+                "image/png",  # but declared PNG
             )
         },
         headers=headers,
@@ -121,6 +121,7 @@ async def test_upload_happy_path_storage_key_hides_filename(
 
     # Pull the row to inspect its storage_key.
     from app.models.file import File
+
     row = await db.get(File, file_id)
     assert row is not None
     # Server-generated: <yyyy>/<mm>/<uuid4 hex> — no slashes beyond the two
@@ -151,9 +152,7 @@ async def test_signed_url_private_file_wrong_viewer_is_403(
     assert r.status_code == 201
     file_id = r.json()["id"]
 
-    url_resp = await client.get(
-        f"/api/v1/files/{file_id}/signed-url", headers=headers
-    )
+    url_resp = await client.get(f"/api/v1/files/{file_id}/signed-url", headers=headers)
     assert url_resp.status_code == 200
     signed = url_resp.json()["url"]
 
@@ -184,9 +183,7 @@ async def test_signed_url_expired_is_403(
     uid = me.json()["id"]
     expired = create_file_token(file_id=file_id, user_id=uid, ttl_seconds=-120)
 
-    gone = await client.get(
-        f"/api/v1/files/signed/{expired}", headers=headers
-    )
+    gone = await client.get(f"/api/v1/files/signed/{expired}", headers=headers)
     assert gone.status_code == 403, gone.text
 
 
@@ -205,15 +202,76 @@ async def test_signed_url_download_streams_bytes(
     assert r.status_code == 201
     file_id = r.json()["id"]
 
-    url_resp = await client.get(
-        f"/api/v1/files/{file_id}/signed-url", headers=headers
-    )
+    url_resp = await client.get(f"/api/v1/files/{file_id}/signed-url", headers=headers)
     signed = url_resp.json()["url"]
 
     stream = await client.get(signed, headers=headers)
     assert stream.status_code == 200, stream.text
     assert stream.headers.get("content-type", "").startswith("image/jpeg")
     assert len(stream.content) == len(body)
+
+
+@pytest.mark.asyncio
+async def test_profile_image_is_publicly_viewable(
+    client: httpx.AsyncClient,
+    creator_user: dict,
+) -> None:
+    body = _pad(JPEG_HEADER, 2048)
+    uploaded = await client.post(
+        "/api/v1/files/profile-image",
+        files={"file": ("profile.jpg", body, "image/jpeg")},
+        headers=creator_user["auth_header"],
+    )
+    assert uploaded.status_code == 201, uploaded.text
+    file_id = uploaded.json()["id"]
+
+    image = await client.get(f"/api/v1/files/public/{file_id}")
+    assert image.status_code == 200, image.text
+    assert image.headers.get("content-type", "").startswith("image/jpeg")
+    assert image.headers.get("content-disposition") == "inline"
+    assert image.content == body
+
+
+@pytest.mark.asyncio
+async def test_public_file_route_does_not_serve_private_uploads(
+    client: httpx.AsyncClient,
+    creator_user: dict,
+) -> None:
+    uploaded = await client.post(
+        "/api/v1/files",
+        files={"file": ("private.jpg", _pad(JPEG_HEADER, 1024), "image/jpeg")},
+        headers=creator_user["auth_header"],
+    )
+    assert uploaded.status_code == 201
+
+    response = await client.get(f"/api/v1/files/public/{uploaded.json()['id']}")
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_profile_image_upload_only_accepts_images(
+    client: httpx.AsyncClient,
+    creator_user: dict,
+) -> None:
+    response = await client.post(
+        "/api/v1/files/profile-image",
+        files={"file": ("portfolio.pdf", PDF_HEADER, "application/pdf")},
+        headers=creator_user["auth_header"],
+    )
+    assert response.status_code == 415
+
+
+@pytest.mark.asyncio
+async def test_brand_cannot_upload_creator_portfolio_file(
+    client: httpx.AsyncClient,
+    brand_user: dict,
+) -> None:
+    response = await client.post(
+        "/api/v1/files/creator-portfolio",
+        files={"file": ("portfolio.jpg", _pad(JPEG_HEADER, 1024), "image/jpeg")},
+        headers=brand_user["auth_header"],
+    )
+    assert response.status_code == 403
 
 
 # Silence "unused" warnings on helpers kept for future tests.

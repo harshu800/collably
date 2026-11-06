@@ -5,6 +5,7 @@ import { useAuth, useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import {
   apiFetch,
+  apiUpload,
   ApiError,
   type ApiRequestOptions,
 } from "./client";
@@ -14,6 +15,11 @@ type RequestOpts = Omit<ApiRequestOptions, "method" | "token">;
 export interface ApiClient {
   get: <T>(path: string, opts?: RequestOpts) => Promise<T>;
   post: <T>(path: string, opts?: RequestOpts) => Promise<T>;
+  postWithProgress: <T>(
+    path: string,
+    body: FormData,
+    onProgress: (percent: number) => void,
+  ) => Promise<T>;
   put: <T>(path: string, opts?: RequestOpts) => Promise<T>;
   patch: <T>(path: string, opts?: RequestOpts) => Promise<T>;
   delete: <T>(path: string, opts?: RequestOpts) => Promise<T>;
@@ -34,9 +40,16 @@ export function useApi(): ApiClient {
       method: string,
       path: string,
       opts: RequestOpts = {},
+      onProgress?: (percent: number) => void,
     ): Promise<T> {
       const token = (await getToken()) ?? undefined;
       try {
+        if (onProgress) {
+          if (!(opts.body instanceof FormData)) {
+            throw new TypeError("Upload requests require FormData.");
+          }
+          return await apiUpload<T>(path, opts.body, { token, onProgress });
+        }
         return await apiFetch<T>(path, { ...opts, method, token });
       } catch (e) {
         if (e instanceof ApiError && e.status === 401) {
@@ -49,6 +62,11 @@ export function useApi(): ApiClient {
     return {
       get: <T>(p: string, o?: RequestOpts) => request<T>("GET", p, o),
       post: <T>(p: string, o?: RequestOpts) => request<T>("POST", p, o),
+      postWithProgress: <T>(
+        p: string,
+        body: FormData,
+        onProgress: (percent: number) => void,
+      ) => request<T>("POST", p, { body }, onProgress),
       put: <T>(p: string, o?: RequestOpts) => request<T>("PUT", p, o),
       patch: <T>(p: string, o?: RequestOpts) => request<T>("PATCH", p, o),
       delete: <T>(p: string, o?: RequestOpts) => request<T>("DELETE", p, o),

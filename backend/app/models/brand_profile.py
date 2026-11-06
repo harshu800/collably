@@ -33,6 +33,8 @@ class BrandProfile(Base, TimestampMixin):
         nullable=True,
     )
     industry: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    city: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    state: Mapped[str | None] = mapped_column(String(120), nullable=True)
     contact_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     contact_email: Mapped[str | None] = mapped_column(String(320), nullable=True)
     # GSTIN is validated via regex at the application layer (design §9); no DB check.
@@ -41,3 +43,8 @@ class BrandProfile(Base, TimestampMixin):
     is_onboarded: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # Free-form notes field (optional, matches public-dashboard pattern).
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    social_handles: Mapped[list[dict]] = mapped_column(
+        JSONB,
+        nullable=False,
+        default=list,
+    )

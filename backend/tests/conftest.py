@@ -304,6 +304,11 @@ async def creator_user(client: httpx.AsyncClient):
 
 
 @pytest_asyncio.fixture
+async def second_creator_user(client: httpx.AsyncClient):
+    return await _register_user(client, "creator")
+
+
+@pytest_asyncio.fixture
 async def admin_user(db, client: httpx.AsyncClient):
     """Admin user inserted directly through the DB (admin is not self-selectable)."""
 
@@ -341,4 +346,3 @@ __all__ = [
 
 # Silence "unused" lint on the UUID import — it's used by downstream helpers.
 _ = uuid
-

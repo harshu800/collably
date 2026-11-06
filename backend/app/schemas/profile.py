@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import uuid
 from typing import Annotated, Any, Literal
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, field_validator
 
@@ -31,11 +32,21 @@ class PortfolioLink(_ForbidExtras):
 
 class SocialHandle(_ForbidExtras):
     platform: str = Field(min_length=1, max_length=50)
-    handle: str = Field(min_length=1, max_length=120)
+    handle: str = Field(min_length=1, max_length=2048)
     follower_count: int | None = Field(default=None, ge=0, le=10_000_000_000)
     # Follower counts are self-reported; we persist a sentinel so the frontend
     # can show an "unverified" badge next to the number.
     unverified: Literal[True] = True
+
+    @field_validator("handle")
+    @classmethod
+    def _validate_profile_url(cls, value: str) -> str:
+        if "://" not in value:
+            return value
+        parsed = urlsplit(value)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+            raise ValueError("Social profile URLs must use HTTP or HTTPS.")
+        return value
 
 
 class BillingAddress(_ForbidExtras):
@@ -126,11 +137,14 @@ class BrandProfilePatch(_ForbidExtras):
     website: HttpUrl | None = None
     logo_file_id: uuid.UUID | None = None
     industry: str | None = Field(default=None, max_length=120)
+    city: str | None = Field(default=None, max_length=120)
+    state: str | None = Field(default=None, max_length=120)
     contact_name: str | None = Field(default=None, max_length=200)
     contact_email: EmailStr | None = None
     gstin: str | None = Field(default=None, min_length=15, max_length=15)
     billing_address: BillingAddress | None = None
     description: str | None = Field(default=None, max_length=2000)
+    social_handles: list[SocialHandle] | None = Field(default=None, max_length=20)
 
     @field_validator("gstin")
     @classmethod
@@ -152,12 +166,31 @@ class BrandProfileSelfOut(BaseModel):
     website: str | None
     logo_file_id: uuid.UUID | None
     industry: str | None
+    city: str | None
+    state: str | None
     contact_name: str | None
     contact_email: str | None
     gstin: str | None
     billing_address: dict[str, Any]
     description: str | None
+    social_handles: list[dict[str, Any]]
     is_onboarded: bool
+
+
+class BrandPublicOut(BaseModel):
+    """Public brand details without billing or direct contact information."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    company_name: str | None
+    website: str | None
+    logo_file_id: uuid.UUID | None
+    industry: str | None
+    city: str | None
+    state: str | None
+    description: str | None
+    social_handles: list[dict[str, Any]]
 
 
 # ---------------------------------------------------------------------------

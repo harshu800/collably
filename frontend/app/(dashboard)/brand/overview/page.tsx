@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCollaborations } from "@/lib/api/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingState } from "@/components/states/LoadingState";
@@ -23,7 +24,15 @@ export default function BrandOverviewPage() {
   ];
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold">Overview</h1>
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">Overview</h1>
+        <Link
+          href="/brand/profile"
+          className="inline-flex h-10 items-center rounded-md bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-500"
+        >
+          Edit brand profile
+        </Link>
+      </header>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((s) => (
           <Card key={s.label}>

@@ -10,7 +10,7 @@ from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models.brand_profile import BrandProfile
 from app.models.user import User, UserRole
-from app.schemas.profile import BrandProfileSelfOut
+from app.schemas.profile import BrandProfileSelfOut, BrandPublicOut
 
 router = APIRouter(prefix="/brands", tags=["brands"])
 
@@ -36,3 +36,17 @@ async def get_brand(
             detail="Brand not found.",
         )
     return BrandProfileSelfOut.model_validate(row)
+
+
+@router.get("/{brand_id}/public", response_model=BrandPublicOut)
+async def get_public_brand(
+    brand_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+) -> BrandPublicOut:
+    row = await db.get(BrandProfile, brand_id)
+    if row is None or not row.is_onboarded:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Brand not found.",
+        )
+    return BrandPublicOut.model_validate(row)

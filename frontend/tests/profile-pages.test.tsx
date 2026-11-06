@@ -2,21 +2,39 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import CreatorProfilePage from "@/app/(dashboard)/creator/profile/page";
 import BrandProfilePage from "@/app/(dashboard)/brand/profile/page";
+import BrandPublicProfilePage from "@/app/(public)/brands/[id]/page";
 
-const { useMyProfileMock } = vi.hoisted(() => ({
+const {
+  useMyProfileMock,
+  usePublicBrandMock,
+  useUpdateProfileMock,
+  useApiMock,
+} = vi.hoisted(() => ({
   useMyProfileMock: vi.fn(),
+  usePublicBrandMock: vi.fn(),
+  useUpdateProfileMock: vi.fn(),
+  useApiMock: vi.fn(),
 }));
 
 vi.mock("@/lib/api/queries", () => ({
   useMyProfile: useMyProfileMock,
+  usePublicBrand: usePublicBrandMock,
+  useUpdateProfile: useUpdateProfileMock,
+}));
+
+vi.mock("@/lib/api/useApi", () => ({
+  useApi: useApiMock,
 }));
 
 describe("profile pages", () => {
   beforeEach(() => {
     useMyProfileMock.mockReset();
+    usePublicBrandMock.mockReset();
+    useUpdateProfileMock.mockReturnValue({ mutateAsync: vi.fn() });
+    useApiMock.mockReturnValue({ post: vi.fn() });
   });
 
-  it("shows creator profile details instead of raw JSON", () => {
+  it("shows editable creator details instead of raw JSON", () => {
     useMyProfileMock.mockReturnValue({
       data: {
         role: "creator",
@@ -34,7 +52,13 @@ describe("profile pages", () => {
           portfolio_links: [
             { label: "My work", url: "https://example.com/portfolio" },
           ],
-          social_handles: [],
+          social_handles: [
+            {
+              platform: "YouTube",
+              handle: "https://youtube.com/@mira",
+              unverified: true,
+            },
+          ],
         },
       },
       isLoading: false,
@@ -47,18 +71,34 @@ describe("profile pages", () => {
     expect(
       screen.getByRole("heading", { name: "Your creator profile" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Mira Sharma")).toBeInTheDocument();
-    expect(screen.getByText("Mumbai, Maharashtra")).toBeInTheDocument();
-    expect(screen.getByText("₹2,500.00")).toBeInTheDocument();
+    expect(screen.getByLabelText("Full name")).toHaveValue("Mira Sharma");
+    expect(screen.getByLabelText("City")).toHaveValue("Mumbai");
+    expect(screen.getByLabelText("State")).toHaveValue("Maharashtra");
+    expect(screen.getByLabelText("Instagram handle")).toHaveValue("");
+    expect(screen.getByLabelText("YouTube URL")).toHaveValue(
+      "https://youtube.com/@mira",
+    );
+    expect(
+      screen.getByRole("button", { name: "Upload portfolio file" }),
+    ).toBeInTheDocument();
     expect(container.querySelector("pre")).toBeNull();
   });
 
-  it("shows brand profile details instead of raw JSON", () => {
+  it("shows editable brand details instead of raw JSON", () => {
     useMyProfileMock.mockReturnValue({
       data: {
         role: "brand",
         brand: {
           company_name: "Good Goods",
+          city: "Mumbai",
+          state: "Maharashtra",
+          social_handles: [
+            {
+              platform: "Instagram",
+              handle: "@goodgoods",
+              unverified: true,
+            },
+          ],
           industry: "Beauty",
           contact_name: "Asha Rao",
           contact_email: "asha@example.com",
@@ -81,12 +121,48 @@ describe("profile pages", () => {
 
     const { container } = render(<BrandProfilePage />);
 
-    expect(screen.getByText("Good Goods")).toBeInTheDocument();
-    expect(screen.getByText("Asha Rao")).toBeInTheDocument();
-    expect(screen.getByText("asha@example.com")).toBeInTheDocument();
-    expect(
-      screen.getByText("12 Market Road, Mumbai, Maharashtra, 400001, IN"),
-    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Company name")).toHaveValue("Good Goods");
+    expect(screen.getByLabelText("Contact name")).toHaveValue("Asha Rao");
+    expect(screen.getByLabelText("Contact email")).toHaveValue("asha@example.com");
+    expect(screen.getByLabelText("Address line 1")).toHaveValue("12 Market Road");
+    expect(screen.getByLabelText("Company city")).toHaveValue("Mumbai");
+    expect(screen.getByLabelText("Instagram handle")).toHaveValue("@goodgoods");
     expect(container.querySelector("pre")).toBeNull();
+  });
+
+  it("renders a public brand profile without requiring private contact data", () => {
+    usePublicBrandMock.mockReturnValue({
+      data: {
+        id: "brand-1",
+        company_name: "Good Goods",
+        website: "https://example.com",
+        logo_file_id: null,
+        industry: "Beauty",
+        city: "Mumbai",
+        state: "Maharashtra",
+        description: "Independent skincare brand",
+        social_handles: [
+          {
+            platform: "Instagram",
+            handle: "@goodgoods",
+            unverified: true,
+          },
+        ],
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    });
+
+    render(<BrandPublicProfilePage params={{ id: "brand-1" }} />);
+
+    expect(
+      screen.getByRole("heading", { name: "Good Goods" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Independent skincare brand")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "@goodgoods" })).toHaveAttribute(
+      "href",
+      "https://www.instagram.com/goodgoods",
+    );
   });
 });

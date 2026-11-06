@@ -12,6 +12,7 @@ import type {
   Agreement,
   Application,
   AuditLog,
+  BrandPublic,
   Campaign,
   CampaignList,
   Collaboration,
@@ -34,6 +35,7 @@ export const qk = {
   profile: ["me", "profile"] as const,
   creators: (q: Record<string, unknown>) => ["creators", q] as const,
   creator: (id: string) => ["creators", id] as const,
+  brand: (id: string) => ["brands", id] as const,
   campaigns: (q: Record<string, unknown>) => ["campaigns", q] as const,
   campaign: (id: string) => ["campaigns", id] as const,
   campaignApps: (id: string) => ["campaigns", id, "applications"] as const,
@@ -109,6 +111,15 @@ export function useCreator(id: string) {
   return useQuery<CreatorPublic>({
     queryKey: qk.creator(id),
     queryFn: () => api.get<CreatorPublic>(`/creators/${id}`),
+    enabled: Boolean(id),
+  });
+}
+
+export function usePublicBrand(id: string) {
+  const api = useApi();
+  return useQuery<BrandPublic>({
+    queryKey: qk.brand(id),
+    queryFn: () => api.get<BrandPublic>(`/brands/${id}/public`),
     enabled: Boolean(id),
   });
 }

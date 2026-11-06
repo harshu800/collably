@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   useCollaborations,
   useMyApplications,
@@ -56,7 +57,15 @@ export default function CreatorOverviewPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold">Overview</h1>
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">Overview</h1>
+        <Link
+          href="/creator/profile"
+          className="inline-flex h-10 items-center rounded-md bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-500"
+        >
+          Edit profile
+        </Link>
+      </header>
       {method.data === null ? (
         <Alert tone="warning">
           You have not set a payout method yet. Add one so payouts can be

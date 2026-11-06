@@ -269,6 +269,8 @@ export interface BrandProfileSelf {
   website: string | null;
   logo_file_id: string | null;
   industry: string | null;
+  city: string | null;
+  state: string | null;
   contact_name: string | null;
   contact_email: string | null;
   gstin: string | null;
@@ -281,7 +283,30 @@ export interface BrandProfileSelf {
     country?: string;
   };
   description: string | null;
+  social_handles: {
+    platform: string;
+    handle: string;
+    follower_count?: number | null;
+    unverified?: boolean;
+  }[];
   is_onboarded: boolean;
+}
+
+export interface BrandPublic {
+  id: string;
+  company_name: string | null;
+  website: string | null;
+  logo_file_id: string | null;
+  industry: string | null;
+  city: string | null;
+  state: string | null;
+  description: string | null;
+  social_handles: {
+    platform: string;
+    handle: string;
+    follower_count?: number | null;
+    unverified?: boolean;
+  }[];
 }
 
 export interface MeProfile {

@@ -191,6 +191,7 @@ async def save_upload(
     upload_file: UploadFile,
     content_length: int | None = None,
     visibility: FileVisibility = FileVisibility.private,
+    allowed_mime_types: frozenset[str] | None = None,
 ) -> File:
     """Validate, store, and persist an uploaded file.
 
@@ -202,7 +203,8 @@ async def save_upload(
     """
 
     declared = _normalize_mime(upload_file.content_type)
-    if declared not in ALLOWED_MIME_TYPES:
+    allowed_types = allowed_mime_types or ALLOWED_MIME_TYPES
+    if declared not in allowed_types or declared not in ALLOWED_MIME_TYPES:
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             detail="Unsupported file type.",

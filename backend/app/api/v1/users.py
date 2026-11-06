@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
+import re
+import uuid
+from urllib.parse import urlsplit
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user
 from app.core.errors import InvalidStateTransition
 from app.db.session import get_db
+from app.models.file import File, FileVisibility
 from app.models.user import User, UserRole
 from app.schemas.profile import (
     BrandProfilePatch,
@@ -21,6 +26,85 @@ from app.schemas.user import MeOut, RoleSelectionIn
 from app.services import profile_service, user_service
 
 router = APIRouter(tags=["users"])
+
+PROFILE_IMAGE_TYPES = frozenset({"image/jpeg", "image/png", "image/webp"})
+PORTFOLIO_TYPES = PROFILE_IMAGE_TYPES | frozenset(
+    {"video/mp4", "video/quicktime", "application/pdf"}
+)
+PUBLIC_FILE_ID = re.compile(r"^[0-9a-fA-F-]{36}$")
+
+
+async def _validate_profile_file(
+    db: AsyncSession,
+    *,
+    user: User,
+    file_id: uuid.UUID,
+    allowed_types: frozenset[str],
+) -> None:
+    file_row = await db.get(File, file_id)
+    if (
+        file_row is None
+        or file_row.owner_user_id != user.id
+        or file_row.visibility != FileVisibility.public
+        or file_row.content_type not in allowed_types
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Profile files must be uploaded by you and match the requested file type.",
+        )
+
+
+async def _validate_creator_file_references(
+    db: AsyncSession,
+    *,
+    user: User,
+    patch: dict,
+) -> None:
+    avatar_id = patch.get("avatar_file_id")
+    if avatar_id is not None:
+        await _validate_profile_file(
+            db, user=user, file_id=uuid.UUID(avatar_id), allowed_types=PROFILE_IMAGE_TYPES
+        )
+
+    links = patch.get("portfolio_links")
+    if links is None:
+        return
+    for link in links:
+        path_parts = urlsplit(link["url"]).path.rstrip("/").split("/")
+        if len(path_parts) < 3 or path_parts[-3:-1] != ["files", "public"]:
+            continue
+        raw_file_id = path_parts[-1]
+        if not PUBLIC_FILE_ID.fullmatch(raw_file_id):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Portfolio file URL is invalid.",
+            )
+        try:
+            portfolio_file_id = uuid.UUID(raw_file_id)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Portfolio file URL is invalid.",
+            ) from exc
+        await _validate_profile_file(
+            db,
+            user=user,
+            file_id=portfolio_file_id,
+            allowed_types=PORTFOLIO_TYPES,
+        )
+
+
+async def _validate_brand_file_references(
+    db: AsyncSession,
+    *,
+    user: User,
+    patch: dict,
+) -> None:
+    logo_id = patch.get("logo_file_id")
+    if logo_id is not None:
+        await _validate_profile_file(
+            db, user=user, file_id=uuid.UUID(logo_id), allowed_types=PROFILE_IMAGE_TYPES
+        )
 
 
 def _creator_self(profile) -> CreatorProfileSelfOut:  # noqa: ANN001
@@ -112,7 +196,8 @@ async def patch_me_profile(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail="Invalid creator profile patch.",
                 ) from exc
-        patch = body.model_dump(exclude_unset=True)
+        patch = body.model_dump(exclude_unset=True, mode="json")
+        await _validate_creator_file_references(db, user=user, patch=patch)
         profile = await profile_service.update_creator_profile(db, user=user, patch=patch)
         await db.commit()
         return MeProfileOut(role="creator", creator=_creator_self(profile))
@@ -127,16 +212,13 @@ async def patch_me_profile(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail="Invalid brand profile patch.",
                 ) from exc
-        patch = body.model_dump(exclude_unset=True)
+        patch = body.model_dump(exclude_unset=True, mode="json")
         # Pydantic HttpUrl -> str conversion so SQLAlchemy stores a plain string.
         if "website" in patch and patch["website"] is not None:
             patch["website"] = str(patch["website"])
         if "billing_address" in patch and patch["billing_address"] is not None:
-            patch["billing_address"] = (
-                patch["billing_address"].model_dump()
-                if hasattr(patch["billing_address"], "model_dump")
-                else dict(patch["billing_address"])
-            )
+            patch["billing_address"] = dict(patch["billing_address"])
+        await _validate_brand_file_references(db, user=user, patch=patch)
         profile = await profile_service.update_brand_profile(db, user=user, patch=patch)
         await db.commit()
         return MeProfileOut(role="brand", brand=_brand_self(profile))

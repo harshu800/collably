@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCreator } from "@/lib/api/queries";
 import { LoadingState } from "@/components/states/LoadingState";
 import { ErrorState } from "@/components/states/ErrorState";
@@ -7,6 +8,15 @@ import { EmptyState } from "@/components/states/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatINR } from "@/lib/money";
+import { publicFileUrl } from "@/lib/api/client";
+
+function socialUrl(platform: string, value: string): string | null {
+  if (/^https?:\/\//i.test(value)) return value;
+  if (platform.toLowerCase() === "instagram") {
+    return `https://www.instagram.com/${encodeURIComponent(value.replace(/^@+/, ""))}`;
+  }
+  return null;
+}
 
 export default function CreatorDetailPage({
   params,
@@ -41,19 +51,31 @@ export default function CreatorDetailPage({
   }
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-10">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold">
-          {c.display_name ?? "Unnamed creator"}
-        </h1>
-        <p className="text-slate-600">
-          {[c.city, c.state].filter(Boolean).join(", ") || "Location unspecified"}
-        </p>
-        <div className="flex flex-wrap gap-1">
-          {c.does_ugc ? <Badge tone="info">UGC</Badge> : null}
-          {c.does_influencer ? <Badge tone="info">Influencer</Badge> : null}
-          {c.niches.map((n) => (
-            <Badge key={n}>{n}</Badge>
-          ))}
+      <header className="flex items-center gap-5">
+        {c.avatar_file_id ? (
+          <Image
+            src={publicFileUrl(c.avatar_file_id)}
+            alt={`${c.display_name ?? "Creator"} profile picture`}
+            width={112}
+            height={112}
+            unoptimized
+            className="h-28 w-28 rounded-full border border-slate-200 object-cover"
+          />
+        ) : null}
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-bold">
+            {c.display_name ?? "Unnamed creator"}
+          </h1>
+          <p className="text-slate-600">
+            {[c.city, c.state].filter(Boolean).join(", ") || "Location unspecified"}
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {c.does_ugc ? <Badge tone="info">UGC</Badge> : null}
+            {c.does_influencer ? <Badge tone="info">Influencer</Badge> : null}
+            {c.niches.map((n) => (
+              <Badge key={n}>{n}</Badge>
+            ))}
+          </div>
         </div>
       </header>
       {c.bio ? (
@@ -108,12 +130,27 @@ export default function CreatorDetailPage({
             Social handles
           </h2>
           <ul className="flex flex-col gap-1 text-sm">
-            {c.social_handles.map((s) => (
-              <li key={`${s.platform}-${s.handle}`}>
-                <span className="font-medium">{s.platform}:</span> {s.handle}{" "}
-                <Badge tone="warning">unverified</Badge>
-              </li>
-            ))}
+            {c.social_handles.map((s) => {
+              const href = socialUrl(s.platform, s.handle);
+              return (
+                <li key={`${s.platform}-${s.handle}`}>
+                  <span className="font-medium">{s.platform}:</span>{" "}
+                  {href ? (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="text-brand-600 underline"
+                    >
+                      {s.handle}
+                    </a>
+                  ) : (
+                    s.handle
+                  )}{" "}
+                  <Badge tone="warning">unverified</Badge>
+                </li>
+              );
+            })}
           </ul>
         </section>
       ) : null}

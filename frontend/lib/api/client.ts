@@ -35,6 +35,11 @@ export interface ApiRequestOptions {
   token?: string;
 }
 
+export interface UploadOptions {
+  token?: string;
+  onProgress?: (percent: number) => void;
+}
+
 export function buildUrl(
   path: string,
   query?: ApiRequestOptions["query"],
@@ -47,6 +52,10 @@ export function buildUrl(
     }
   }
   return url.toString();
+}
+
+export function publicFileUrl(fileId: string): string {
+  return buildUrl(`/files/public/${encodeURIComponent(fileId)}`);
 }
 
 export async function apiFetch<T>(
@@ -93,6 +102,52 @@ export async function apiFetch<T>(
     );
   }
   return (parsed ?? undefined) as T;
+}
+
+export function apiUpload<T>(
+  path: string,
+  body: FormData,
+  opts: UploadOptions = {},
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open("POST", buildUrl(path));
+    if (opts.token) {
+      request.setRequestHeader("authorization", `Bearer ${opts.token}`);
+    }
+    request.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        opts.onProgress?.(Math.round((event.loaded / event.total) * 100));
+      }
+    };
+    request.onerror = () => reject(new Error("Network error while uploading."));
+    request.onabort = () => reject(new Error("Upload was cancelled."));
+    request.onload = () => {
+      const parsed: unknown = request.responseText
+        ? safeJson(request.responseText)
+        : undefined;
+      if (request.status < 200 || request.status >= 300) {
+        const errPayload = (parsed ?? {}) as {
+          error_code?: string;
+          message?: string;
+          detail?: string;
+        };
+        reject(
+          new ApiError(
+            errPayload.message ?? errPayload.detail ?? `HTTP ${request.status}`,
+            {
+              status: request.status,
+              errorCode: errPayload.error_code,
+              details: parsed,
+            },
+          ),
+        );
+        return;
+      }
+      resolve(parsed as T);
+    };
+    request.send(body);
+  });
 }
 
 function safeJson(text: string): unknown {

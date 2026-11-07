@@ -34,9 +34,9 @@ class SocialHandle(_ForbidExtras):
     platform: str = Field(min_length=1, max_length=50)
     handle: str = Field(min_length=1, max_length=2048)
     follower_count: int | None = Field(default=None, ge=0, le=10_000_000_000)
-    # Follower counts are self-reported; we persist a sentinel so the frontend
-    # can show an "unverified" badge next to the number.
-    unverified: Literal[True] = True
+    # Follower counts are self-reported; verified status is retained when the
+    # profile is edited and saved again.
+    unverified: bool = True
 
     @field_validator("handle")
     @classmethod

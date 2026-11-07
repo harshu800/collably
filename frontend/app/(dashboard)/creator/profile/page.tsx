@@ -13,6 +13,7 @@ import { ProfileImageUpload } from "@/components/forms/ProfileImageUpload";
 import { useMyProfile, useUpdateProfile } from "@/lib/api/queries";
 import { useApi } from "@/lib/api/useApi";
 import { publicFileUrl } from "@/lib/api/client";
+import { normalizeSocialHandles } from "@/lib/profile-socials";
 import { paiseFromRupees } from "@/lib/money";
 import type { CreatorProfileSelf } from "@/lib/api/types";
 
@@ -52,10 +53,20 @@ function CreatorProfileEditor({ profile }: { profile: CreatorProfileSelf }) {
       (item) => item.platform.toLowerCase() === "instagram",
     )?.handle ?? "",
   );
+  const [instagramMetadata, setInstagramMetadata] = React.useState(
+    profile.social_handles.find(
+      (item) => item.platform.toLowerCase() === "instagram",
+    ),
+  );
   const [youtubeUrl, setYoutubeUrl] = React.useState(
     profile.social_handles.find(
       (item) => item.platform.toLowerCase() === "youtube",
     )?.handle ?? "",
+  );
+  const [youtubeMetadata, setYoutubeMetadata] = React.useState(
+    profile.social_handles.find(
+      (item) => item.platform.toLowerCase() === "youtube",
+    ),
   );
   const [otherSocials, setOtherSocials] = React.useState(
     profile.social_handles.filter(
@@ -149,14 +160,15 @@ function CreatorProfileEditor({ profile }: { profile: CreatorProfileSelf }) {
         starting_rate_paise:
           startingRate.trim() === "" ? null : paiseFromRupees(startingRate),
         portfolio_links: portfolioLinks,
-        social_handles: [
+        social_handles: normalizeSocialHandles([
           ...otherSocials,
           ...(normalizedInstagram
             ? [
                 {
                   platform: "Instagram",
                   handle: `@${normalizedInstagram}`,
-                  unverified: true,
+                  follower_count: instagramMetadata?.follower_count,
+                  unverified: instagramMetadata?.unverified ?? true,
                 },
               ]
             : []),
@@ -165,11 +177,12 @@ function CreatorProfileEditor({ profile }: { profile: CreatorProfileSelf }) {
                 {
                   platform: "YouTube",
                   handle: normalizedYouTube,
-                  unverified: true,
+                  follower_count: youtubeMetadata?.follower_count,
+                  unverified: youtubeMetadata?.unverified ?? true,
                 },
               ]
             : []),
-        ],
+        ]),
       });
       setSaved(true);
     } catch (e) {
@@ -590,10 +603,20 @@ function CreatorProfileEditor({ profile }: { profile: CreatorProfileSelf }) {
                 (item) => item.platform.toLowerCase() === "instagram",
               )?.handle ?? "",
             );
+            setInstagramMetadata(
+              profile.social_handles.find(
+                (item) => item.platform.toLowerCase() === "instagram",
+              ),
+            );
             setYoutubeUrl(
               profile.social_handles.find(
                 (item) => item.platform.toLowerCase() === "youtube",
               )?.handle ?? "",
+            );
+            setYoutubeMetadata(
+              profile.social_handles.find(
+                (item) => item.platform.toLowerCase() === "youtube",
+              ),
             );
             setOtherSocials(
               profile.social_handles.filter(

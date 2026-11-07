@@ -190,7 +190,7 @@ async def test_creator_profile_files_socials_and_portfolio_persist(
                 {
                     "platform": "Instagram",
                     "handle": "@creator",
-                    "unverified": True,
+                    "unverified": False,
                 },
                 {
                     "platform": "YouTube",
@@ -209,6 +209,8 @@ async def test_creator_profile_files_socials_and_portfolio_persist(
     assert creator["avatar_file_id"] == file_id
     assert creator["portfolio_links"][0]["label"] == "Portfolio sample"
     assert creator["social_handles"][1]["handle"] == "https://youtube.com/@creator"
+    assert creator["social_handles"][0]["unverified"] is False
+    assert creator["social_handles"][1]["unverified"] is True
 
     foreign_patch = await client.patch(
         "/api/v1/me/profile",
@@ -283,7 +285,7 @@ async def test_brand_profile_public_fields_persist_without_private_data(
                 {
                     "platform": "Instagram",
                     "handle": "@goodgoods",
-                    "unverified": True,
+                    "unverified": False,
                 }
             ],
             "billing_address": {
@@ -302,6 +304,7 @@ async def test_brand_profile_public_fields_persist_without_private_data(
     reloaded = await client.get("/api/v1/me/profile", headers=brand_headers)
     assert reloaded.json()["brand"]["city"] == "Mumbai"
     assert reloaded.json()["brand"]["social_handles"][0]["handle"] == "@goodgoods"
+    assert reloaded.json()["brand"]["social_handles"][0]["unverified"] is False
 
     brand_id = reloaded.json()["brand"]["id"]
     public = await client.get(f"/api/v1/brands/{brand_id}/public")

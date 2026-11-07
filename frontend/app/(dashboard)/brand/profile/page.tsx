@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/states/EmptyState";
 import { LoadingState } from "@/components/states/LoadingState";
 import { ProfileImageUpload } from "@/components/forms/ProfileImageUpload";
 import { useMyProfile, useUpdateProfile } from "@/lib/api/queries";
+import { normalizeSocialHandles } from "@/lib/profile-socials";
 import type { BrandProfileSelf } from "@/lib/api/types";
 
 function BrandProfileEditor({ profile }: { profile: BrandProfileSelf }) {
@@ -30,6 +31,11 @@ function BrandProfileEditor({ profile }: { profile: BrandProfileSelf }) {
     profile.social_handles?.find(
       (item) => item.platform.toLowerCase() === "instagram",
     )?.handle ?? "",
+  );
+  const [instagramMetadata, setInstagramMetadata] = React.useState(
+    profile.social_handles?.find(
+      (item) => item.platform.toLowerCase() === "instagram",
+    ),
   );
   const [otherSocials, setOtherSocials] = React.useState(
     (profile.social_handles ?? []).filter(
@@ -81,18 +87,19 @@ function BrandProfileEditor({ profile }: { profile: BrandProfileSelf }) {
         contact_email: contactEmail.trim() || null,
         gstin: gstin.trim() || null,
         description: description.trim() || null,
-        social_handles: [
+        social_handles: normalizeSocialHandles([
           ...otherSocials,
           ...(instagram.trim()
             ? [
                 {
                   platform: "Instagram",
                   handle: `@${instagram.trim().replace(/^@+/, "")}`,
-                  unverified: true,
+                  follower_count: instagramMetadata?.follower_count,
+                  unverified: instagramMetadata?.unverified ?? true,
                 },
               ]
             : []),
-        ],
+        ]),
         ...(hasAddress
           ? {
               billing_address: {
@@ -418,6 +425,11 @@ function BrandProfileEditor({ profile }: { profile: BrandProfileSelf }) {
               profile.social_handles?.find(
                 (item) => item.platform.toLowerCase() === "instagram",
               )?.handle ?? "",
+            );
+            setInstagramMetadata(
+              profile.social_handles?.find(
+                (item) => item.platform.toLowerCase() === "instagram",
+              ),
             );
             setOtherSocials(
               (profile.social_handles ?? []).filter(

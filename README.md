@@ -257,3 +257,4 @@ See [docs/production-checklist.md](./docs/production-checklist.md) for the compl
 - Digital Personal Data Protection Act (DPDP) obligations.
 
 Legal review is required before accepting real money through this platform.
+

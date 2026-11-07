@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { usePublicBrand } from "@/lib/api/queries";
-import { publicFileUrl } from "@/lib/api/client";
+import { ApiError, publicFileUrl } from "@/lib/api/client";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/states/EmptyState";
@@ -32,6 +32,16 @@ export default function BrandPublicProfilePage({
     );
   }
   if (query.isError) {
+    if (query.error instanceof ApiError && query.error.status === 404) {
+      return (
+        <main className="mx-auto max-w-3xl px-6 py-10">
+          <EmptyState
+            title="Profile not public yet"
+            description="This brand profile isn't public. If it's yours, add company name, industry, contact name and contact email, then save."
+          />
+        </main>
+      );
+    }
     return (
       <main className="mx-auto max-w-3xl px-6 py-10">
         <ErrorState

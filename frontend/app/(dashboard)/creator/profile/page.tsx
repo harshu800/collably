@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -198,7 +199,8 @@ function CreatorProfileEditor({ profile }: { profile: CreatorProfileSelf }) {
         <h1 className="text-2xl font-bold">Your creator profile</h1>
         <p className="mt-1 text-sm text-slate-600">
           Add a profile photo, Instagram handle, and portfolio so brands can
-          learn about your work. Creator profile details are public.
+          learn about your work. Creator profile details are public. Save
+          changes to publish your edits and uploads.
         </p>
       </header>
 
@@ -547,7 +549,8 @@ function CreatorProfileEditor({ profile }: { profile: CreatorProfileSelf }) {
             </Button>
             <p className="mt-1 text-xs text-slate-500">
               Images (10 MB max), videos (200 MB max), or PDF (25 MB max).
-              Uploaded portfolio files are public.
+              Uploaded portfolio files are public. Save changes to add them to
+              your profile.
             </p>
             {uploadingPortfolio ? (
               <div className="mt-2 max-w-xs">
@@ -634,6 +637,18 @@ function CreatorProfileEditor({ profile }: { profile: CreatorProfileSelf }) {
         >
           Cancel
         </Button>
+        {profile.is_onboarded ? (
+          <Link
+            href={`/creators/${profile.id}`}
+            className="inline-flex items-center rounded-md px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50"
+          >
+            View public profile
+          </Link>
+        ) : (
+          <p className="self-center text-sm text-slate-500">
+            Complete your required details and save to publish your profile.
+          </p>
+        )}
       </div>
     </form>
   );

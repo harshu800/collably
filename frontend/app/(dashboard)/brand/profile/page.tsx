@@ -126,7 +126,8 @@ function BrandProfileEditor({ profile }: { profile: BrandProfileSelf }) {
       <header>
         <h1 className="text-2xl font-bold">Brand profile</h1>
         <p className="mt-1 text-sm text-slate-600">
-          Add your company logo and details for creator collaborations.
+          Add your company logo and details for creator collaborations. Save
+          changes to publish your logo and profile edits.
         </p>
       </header>
 

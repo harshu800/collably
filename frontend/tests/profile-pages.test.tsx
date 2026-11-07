@@ -31,7 +31,10 @@ describe("profile pages", () => {
     useMyProfileMock.mockReset();
     usePublicBrandMock.mockReset();
     useUpdateProfileMock.mockReturnValue({ mutateAsync: vi.fn() });
-    useApiMock.mockReturnValue({ post: vi.fn() });
+    useApiMock.mockReturnValue({
+      post: vi.fn(),
+      postWithProgress: vi.fn(),
+    });
   });
 
   it("shows editable creator details instead of raw JSON", () => {
@@ -39,6 +42,7 @@ describe("profile pages", () => {
       data: {
         role: "creator",
         creator: {
+          id: "creator-1",
           display_name: "Mira Sharma",
           city: "Mumbai",
           state: "Maharashtra",
@@ -59,6 +63,7 @@ describe("profile pages", () => {
               unverified: true,
             },
           ],
+          is_onboarded: true,
         },
       },
       isLoading: false,
@@ -81,7 +86,78 @@ describe("profile pages", () => {
     expect(
       screen.getByRole("button", { name: "Upload portfolio file" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "View public profile" }),
+    ).toHaveAttribute("href", "/creators/creator-1");
     expect(container.querySelector("pre")).toBeNull();
+  });
+
+  it("uploads profile and portfolio files and saves them to the creator profile", async () => {
+    const mutateAsync = vi.fn().mockResolvedValue({});
+    const postWithProgress = vi
+      .fn()
+      .mockResolvedValueOnce({ id: "avatar-file" })
+      .mockResolvedValueOnce({ id: "portfolio-file" });
+    useUpdateProfileMock.mockReturnValue({ mutateAsync });
+    useApiMock.mockReturnValue({ post: vi.fn(), postWithProgress });
+    useMyProfileMock.mockReturnValue({
+      data: {
+        role: "creator",
+        creator: {
+          id: "creator-1",
+          display_name: "Mira Sharma",
+          avatar_file_id: null,
+          bio: "Beauty creator",
+          city: "Mumbai",
+          state: "Maharashtra",
+          languages: ["English"],
+          niches: ["beauty"],
+          does_ugc: true,
+          does_influencer: false,
+          content_types: ["Video"],
+          starting_rate_paise: null,
+          currency: "INR",
+          portfolio_links: [],
+          social_handles: [],
+          is_onboarded: true,
+        },
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    });
+
+    const { container } = render(<CreatorProfilePage />);
+    fireEvent.change(screen.getByLabelText("Choose profile picture"), {
+      target: {
+        files: [new File(["avatar"], "avatar.jpg", { type: "image/jpeg" })],
+      },
+    });
+    await waitFor(() => expect(postWithProgress).toHaveBeenCalledTimes(1));
+
+    fireEvent.change(screen.getByLabelText("Choose portfolio file"), {
+      target: {
+        files: [new File(["portfolio"], "sample.pdf", { type: "application/pdf" })],
+      },
+    });
+    await waitFor(() => expect(postWithProgress).toHaveBeenCalledTimes(2));
+    expect(
+      screen.getByRole("link", { name: "sample.pdf" }),
+    ).toBeInTheDocument();
+
+    fireEvent.submit(container.querySelector("form")!);
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledOnce());
+    expect(mutateAsync.mock.calls[0][0]).toMatchObject({
+      avatar_file_id: "avatar-file",
+      portfolio_links: [
+        {
+          label: "sample.pdf",
+        },
+      ],
+    });
+    expect(mutateAsync.mock.calls[0][0].portfolio_links[0].url).toMatch(
+      /\/files\/public\/portfolio-file$/,
+    );
   });
 
   it("normalizes creator social handles without losing verification status", async () => {
@@ -204,6 +280,50 @@ describe("profile pages", () => {
     expect(screen.getByLabelText("Company city")).toHaveValue("Mumbai");
     expect(screen.getByLabelText("Instagram handle")).toHaveValue("@goodgoods");
     expect(container.querySelector("pre")).toBeNull();
+  });
+
+  it("uploads a brand logo and saves it to the brand profile", async () => {
+    const mutateAsync = vi.fn().mockResolvedValue({});
+    const postWithProgress = vi.fn().mockResolvedValue({ id: "brand-logo-file" });
+    useUpdateProfileMock.mockReturnValue({ mutateAsync });
+    useApiMock.mockReturnValue({ post: vi.fn(), postWithProgress });
+    useMyProfileMock.mockReturnValue({
+      data: {
+        role: "brand",
+        brand: {
+          id: "brand-1",
+          company_name: "Good Goods",
+          website: "https://example.com",
+          logo_file_id: null,
+          industry: "Beauty",
+          city: "Mumbai",
+          state: "Maharashtra",
+          contact_name: "Asha Rao",
+          contact_email: "asha@example.com",
+          gstin: null,
+          billing_address: {},
+          description: "Independent skincare brand",
+          social_handles: [],
+          is_onboarded: true,
+        },
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    });
+
+    const { container } = render(<BrandProfilePage />);
+    fireEvent.change(screen.getByLabelText("Choose company logo"), {
+      target: {
+        files: [new File(["logo"], "logo.png", { type: "image/png" })],
+      },
+    });
+    await waitFor(() => expect(postWithProgress).toHaveBeenCalledOnce());
+    expect(postWithProgress.mock.calls[0][0]).toBe("/files/profile-image");
+
+    fireEvent.submit(container.querySelector("form")!);
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledOnce());
+    expect(mutateAsync.mock.calls[0][0].logo_file_id).toBe("brand-logo-file");
   });
 
   it("normalizes brand social handles without losing verification status", async () => {

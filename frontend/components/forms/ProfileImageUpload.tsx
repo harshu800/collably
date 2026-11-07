@@ -33,7 +33,9 @@ export function ProfileImageUpload({
 
   React.useEffect(
     () => () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      if (previewUrl && typeof URL.revokeObjectURL === "function") {
+        URL.revokeObjectURL(previewUrl);
+      }
     },
     [previewUrl],
   );
@@ -50,7 +52,11 @@ export function ProfileImageUpload({
       return;
     }
 
-    setPreviewUrl(URL.createObjectURL(file));
+    setPreviewUrl(
+      typeof URL.createObjectURL === "function"
+        ? URL.createObjectURL(file)
+        : null,
+    );
     setProgress(0);
     const formData = new FormData();
     formData.append("file", file);

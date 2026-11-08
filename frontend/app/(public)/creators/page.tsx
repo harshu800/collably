@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { useCreators } from "@/lib/api/queries";
 import { LoadingState } from "@/components/states/LoadingState";
@@ -7,9 +8,13 @@ import { EmptyState } from "@/components/states/EmptyState";
 import { ErrorState } from "@/components/states/ErrorState";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default function CreatorsPage() {
-  const q = useCreators({ page: 1, page_size: 20 });
+  const [page, setPage] = React.useState(1);
+  const pageSize = 20;
+  const q = useCreators({ page, page_size: pageSize });
+  const totalPages = Math.ceil((q.data?.total ?? 0) / pageSize);
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-6 px-6 py-10">
       <header>
@@ -64,6 +69,30 @@ export default function CreatorsPage() {
           ))}
         </ul>
       )}
+      {totalPages > 1 ? (
+        <nav
+          aria-label="Creator pages"
+          className="flex items-center justify-center gap-4"
+        >
+          <Button
+            variant="outline"
+            disabled={page === 1}
+            onClick={() => setPage((current) => current - 1)}
+          >
+            Previous
+          </Button>
+          <span className="text-sm text-slate-600">
+            Page {page} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            disabled={page >= totalPages}
+            onClick={() => setPage((current) => current + 1)}
+          >
+            Next
+          </Button>
+        </nav>
+      ) : null}
     </main>
   );
 }

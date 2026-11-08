@@ -29,6 +29,18 @@ export default function LandingPage() {
           >
             How it works
           </Link>
+          <Link
+            href="/creators"
+            className="rounded-md border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+          >
+            Browse creators
+          </Link>
+          <Link
+            href="/campaigns"
+            className="rounded-md border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+          >
+            View brand deals
+          </Link>
         </div>
       </header>
 

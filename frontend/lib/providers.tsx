@@ -2,9 +2,19 @@
 
 import * as React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useAuth } from "@clerk/nextjs";
 import { ToastProvider } from "@/components/ui/toast";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
+  const { userId } = useAuth();
+  return (
+    <UserQueryProviders key={userId ?? "anonymous"}>
+      {children}
+    </UserQueryProviders>
+  );
+}
+
+function UserQueryProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = React.useState(
     () =>
       new QueryClient({
